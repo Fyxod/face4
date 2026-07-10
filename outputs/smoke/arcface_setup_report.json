@@ -1,0 +1,29 @@
+{
+  "arcface": {
+    "arcface_architecture": "iresnet100",
+    "arcface_channel_order": "rgb",
+    "arcface_checkpoint_filename": "iresnet100.pth",
+    "arcface_checkpoint_path": "/home/interns/Desktop/face4/models/arcface/iresnet100.pth",
+    "arcface_checkpoint_sha256": "a566a62357f0c55b679d9ff2f022a294486568be0c00665d39029d0e46a8109b",
+    "arcface_checkpoint_source": "camenduru/show models/arcface/ms1mv3_arcface_r100_fp16.pth revision 064a379f415f674051145ec4862f54bd6a65073f",
+    "arcface_embedding_dimension": 512,
+    "arcface_embedding_normalization": "l2",
+    "arcface_input_size": 112,
+    "arcface_normalization": "minus_one_to_one",
+    "architecture": "iresnet100",
+    "exact_state_dict_match": true,
+    "loaded_state_entries": 925,
+    "missing_state_entries": [],
+    "parameter_count": 65156160,
+    "shape_mismatches": {},
+    "state_dict_match_ratio": 1.0,
+    "trainable_parameter_count": 0,
+    "unexpected_state_entries": []
+  },
+  "checkpoint_path": "/home/interns/Desktop/face4/models/arcface/iresnet100.pth",
+  "checkpoint_sha256": "a566a62357f0c55b679d9ff2f022a294486568be0c00665d39029d0e46a8109b",
+  "parameters_frozen": true,
+  "random_weights_used": false,
+  "source": "camenduru/show models/arcface/ms1mv3_arcface_r100_fp16.pth revision 064a379f415f674051145ec4862f54bd6a65073f",
+  "status": "ok"
+}
