@@ -1,0 +1,6 @@
+iters: 2
+quick: true
+edit_steps: 2
+geometry_config: configs/geometry_default.json
+arcface_checkpoint: models/arcface/iresnet100.pth
+skip_deepface: true

@@ -1,0 +1,9 @@
+faces:
+  - face_002
+  - face_005
+prompts:
+  - add black sunglasses
+  - add headphones
+notes:
+  - Z is prompt-conditioned through the differentiable InstructPix2Pix edit.
+  - The optimized comparison is ArcFace(original edit) vs ArcFace(perturbed edit).

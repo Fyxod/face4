@@ -1,0 +1,90 @@
+{
+  "description": "FACE4 extended geometry preset. Existing spatial components plus polar, B-spline/Bezier FFD, lens, Mobius, Laplacian-smoothed, geodesic-inspired, and differential-surface components are enabled. Use for experiments after smoke testing.",
+  "global": {
+    "init": "neutral",
+    "init_fraction": 0.05,
+    "edge_falloff_px": 16.0,
+    "spatial_padding_mode": "border",
+    "max_combined_disp_px": null
+  },
+  "sizes": {
+    "tps_size": 5,
+    "delaunay_size": 5,
+    "fft_phase_size": 8,
+    "bspline_size": 6,
+    "laplacian_size": 7,
+    "differential_surface_size": 7
+  },
+  "components": {
+    "tps": {
+      "enabled": true,
+      "norm_limit": 0.008,
+      "px_limit": null
+    },
+    "delaunay": {
+      "enabled": true,
+      "norm_limit": 0.015,
+      "px_limit": null
+    },
+    "rolling": {
+      "enabled": true,
+      "norm_limit": 0.01,
+      "px_limit": null
+    },
+    "dct": {
+      "enabled": false,
+      "mode": "block_frequency_gain",
+      "block_size": 8,
+      "frequency_mask": "all_ac",
+      "exclude_dc": true,
+      "gain_limit": 0.5
+    },
+    "fft_phase": {
+      "enabled": false,
+      "phase_limit_rad": 3.141592653589793
+    },
+    "polar": {
+      "enabled": true,
+      "radial_norm_limit": 0.02,
+      "radial_px_limit": null,
+      "twist_limit_rad": 0.35
+    },
+    "bspline": {
+      "enabled": true,
+      "size": 6,
+      "norm_limit": 0.02,
+      "px_limit": null
+    },
+    "lens_barrel": {
+      "enabled": true,
+      "k_limit": 0.35
+    },
+    "lens_pincushion": {
+      "enabled": true,
+      "k_limit": 0.35
+    },
+    "mobius": {
+      "enabled": true,
+      "limit": 0.2
+    },
+    "laplacian": {
+      "enabled": true,
+      "size": 7,
+      "norm_limit": 0.02,
+      "px_limit": null,
+      "smoothing_steps": 8,
+      "smoothing_alpha": 0.35
+    },
+    "geodesic": {
+      "enabled": true,
+      "norm_limit": 0.03,
+      "px_limit": null
+    },
+    "differential_surface": {
+      "enabled": true,
+      "size": 7,
+      "height_limit": 0.04,
+      "px_scale": 12.0
+    }
+  }
+}

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "face4"
+version = "0.1.0"
+description = "Edited-output ArcFace cosine white-box optimization through differentiable InstructPix2Pix."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "torch",
+  "torchvision",
+  "diffusers",
+  "transformers",
+  "accelerate",
+  "safetensors",
+  "pillow",
+  "numpy",
+  "scipy",
+  "pandas",
+  "scikit-image",
+  "matplotlib",
+  "reportlab",
+  "sentencepiece",
+  "protobuf",
+  "deepface",
+  "opencv-python",
+]
+
+[tool.setuptools.packages.find]
+include = ["face4*"]

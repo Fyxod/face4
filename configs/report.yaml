@@ -1,0 +1,3 @@
+results_root: outputs/edited_output_identity_exact
+output_root: outputs/reports/edited_output_identity_exact
+compress_images: true

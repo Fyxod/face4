@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.env
+.DS_Store
+
+# Model weights and local caches
+models/arcface/*
+!models/arcface/.gitkeep
+*.ckpt
+*.safetensors
+*.pt
+*.pth
+*.bin
+**/cache/
+**/model_cache/
+
+# Local replay/debug artifacts
+theta_final.pt
+theta_best.pt
+outputs/**/*.pt
+outputs/**/*.pth
+
+# Keep logs addable when useful.
