@@ -31,6 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--exact-min-ssim", type=float, default=0.999)
     parser.add_argument("--native-pil-min-ssim", type=float, default=0.990)
     parser.add_argument("--max-z-gap", type=float, default=0.001)
+    parser.add_argument("--backward-scale", type=float, default=65536.0)
     return parser.parse_args()
 
 
@@ -73,9 +74,12 @@ def main() -> None:
             native_pil_min_ssim=args.native_pil_min_ssim,
             max_Z_gap=args.max_z_gap,
         ),
+        backward_scale=args.backward_scale,
     )
     print("[face4-parity] comparing checkpointed and non-checkpointed input gradients")
-    checkpoint_gradient = run_checkpoint_gradient_gate(editor, tensor, args.prompt, seed)
+    checkpoint_gradient = run_checkpoint_gradient_gate(
+        editor, tensor, args.prompt, seed, backward_scale=args.backward_scale
+    )
     report["checkpoint_gradient_parity"] = checkpoint_gradient
     report["passed"] = bool(report["passed"] and checkpoint_gradient.get("passed", False))
     output = Path(args.output_root) / f"{args.face_id}__{case.slug}__seed_{seed}__steps_{args.edit_steps}"

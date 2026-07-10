@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import math
 from typing import Any
 
 import torch
@@ -38,6 +39,7 @@ def run_editor_parity_gate(
     arcface=None,
     identity_reference=None,
     thresholds: ParityThresholds | None = None,
+    backward_scale: float = 65536.0,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Compare grad, no-grad, stock-tensor, and normal PIL pipeline forwards.
 
@@ -47,12 +49,16 @@ def run_editor_parity_gate(
     broken gradient-only image-latent branch.
     """
 
+    if not math.isfinite(backward_scale) or backward_scale <= 0.0:
+        raise ValueError(f"backward_scale must be finite and positive, got {backward_scale!r}")
     limits = thresholds or ParityThresholds()
     canonical = editor.canonical_input(image.detach())
     probe = canonical.detach().clone().requires_grad_(True)
     grad_output = editor.edit_tensor(probe, prompt, seed)
     probe_loss = grad_output.float().square().mean()
-    input_grad = torch.autograd.grad(probe_loss, probe, retain_graph=False, create_graph=False)[0]
+    input_grad = torch.autograd.grad(
+        probe_loss * float(backward_scale), probe, retain_graph=False, create_graph=False
+    )[0] / float(backward_scale)
     finite_grad = bool(torch.isfinite(input_grad).all().item())
     grad_norm = float(input_grad.float().norm().detach().cpu())
 
@@ -104,6 +110,7 @@ def run_editor_parity_gate(
         "thresholds": asdict(limits),
         "input_gradient_finite": finite_grad,
         "input_gradient_norm": grad_norm,
+        "backward_scale": float(backward_scale),
         "pairs": pairs,
         **z_values,
         "max_Z_gap": z_gap,
@@ -140,6 +147,7 @@ def run_checkpoint_gradient_gate(
     min_gradient_cosine: float = 0.995,
     max_relative_l2: float = 0.10,
     min_output_ssim: float = 0.999,
+    backward_scale: float = 65536.0,
 ) -> dict[str, Any]:
     """Compare input gradients with Diffusers checkpointing on and off.
 
@@ -149,6 +157,8 @@ def run_checkpoint_gradient_gate(
     iteration.
     """
 
+    if not math.isfinite(backward_scale) or backward_scale <= 0.0:
+        raise ValueError(f"backward_scale must be finite and positive, got {backward_scale!r}")
     if not hasattr(editor.unet, "enable_gradient_checkpointing") or not hasattr(
         editor.unet, "disable_gradient_checkpointing"
     ):
@@ -168,15 +178,20 @@ def run_checkpoint_gradient_gate(
         probe = canonical.detach().clone().requires_grad_(True)
         output = editor.edit_tensor(probe, prompt, seed)
         scalar = (output.float() * pattern).mean()
-        gradient = torch.autograd.grad(scalar, probe, retain_graph=False, create_graph=False)[0]
+        gradient = torch.autograd.grad(
+            scalar * float(backward_scale), probe, retain_graph=False, create_graph=False
+        )[0] / float(backward_scale)
         return output.detach(), gradient.detach()
 
+    original_checkpointing = bool(getattr(editor.unet, "is_gradient_checkpointing", False))
     try:
         checkpoint_output, checkpoint_grad = one(True)
         plain_output, plain_grad = one(False)
     finally:
-        if editor.settings.enable_gradient_checkpointing:
+        if original_checkpointing:
             editor.unet.enable_gradient_checkpointing()
+        else:
+            editor.unet.disable_gradient_checkpointing()
 
     output_metrics = _pair(checkpoint_output, plain_output)
     checkpoint_flat = checkpoint_grad.float().flatten()
@@ -185,11 +200,14 @@ def run_checkpoint_gradient_gate(
         torch.nn.functional.cosine_similarity(checkpoint_flat.unsqueeze(0), plain_flat.unsqueeze(0), dim=1).cpu()
     )
     diff_l2 = float((checkpoint_flat - plain_flat).norm().cpu())
-    reference_l2 = float(plain_flat.norm().clamp_min(1e-12).cpu())
-    relative_l2 = diff_l2 / reference_l2
+    checkpoint_l2 = float(checkpoint_flat.norm().cpu())
+    plain_l2 = float(plain_flat.norm().cpu())
+    relative_l2 = diff_l2 / max(plain_l2, 1e-12)
     finite = bool(torch.isfinite(checkpoint_grad).all().item() and torch.isfinite(plain_grad).all().item())
+    nonzero = checkpoint_l2 > 0.0 and plain_l2 > 0.0
     passed = bool(
         finite
+        and nonzero
         and output_metrics["ssim"] >= min_output_ssim
         and gradient_cosine >= min_gradient_cosine
         and relative_l2 <= max_relative_l2
@@ -197,8 +215,9 @@ def run_checkpoint_gradient_gate(
     return {
         "passed": passed,
         "finite_gradients": finite,
-        "checkpoint_gradient_norm": float(checkpoint_flat.norm().cpu()),
-        "plain_gradient_norm": reference_l2,
+        "nonzero_gradients": nonzero,
+        "checkpoint_gradient_norm": checkpoint_l2,
+        "plain_gradient_norm": plain_l2,
         "gradient_cosine_similarity": gradient_cosine,
         "gradient_relative_l2_error": relative_l2,
         "output_metrics": output_metrics,
@@ -207,4 +226,5 @@ def run_checkpoint_gradient_gate(
             "max_relative_l2": max_relative_l2,
             "min_output_ssim": min_output_ssim,
         },
+        "backward_scale": float(backward_scale),
     }

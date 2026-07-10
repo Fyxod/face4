@@ -35,6 +35,9 @@ FACE4 changes the execution contract:
   backward derivative;
 - the ArcFace iResNet topology matches InsightFace Conv-to-BN downsample blocks,
   and checkpoint loading must be exact;
+- fp16 backward uses standard loss scaling and unscales geometry gradients
+  before Adam, preventing small identity gradients from underflowing without
+  changing `loss = Z`;
 - every logged Z, image, flow, parameter diagnostic, and best iteration refers
   to one consistent pre-update geometry state;
 - stock Z is checked at initialization, periodically, and at final/best replay.

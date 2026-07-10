@@ -51,6 +51,7 @@ class RunConfig:
     parity_native_pil_min_ssim: float = 0.990
     parity_max_Z_gap: float = 0.001
     stock_validation_every: int = 25
+    backward_scale: float = 65536.0
     resume_run_root: str | None = None
     resume_latest: bool = False
 

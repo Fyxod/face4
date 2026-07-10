@@ -25,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=None, help="Optional override; default preserves each case's deterministic seed.")
     parser.add_argument("--stock-validation-every", type=int, default=25)
     parser.add_argument("--parity-max-z-gap", type=float, default=0.001)
+    parser.add_argument("--backward-scale", type=float, default=65536.0)
     parser.add_argument("--resume-run-root", default=None, help="Resume a specific timestamped run root; skips DONE cases and archives incomplete cases before rerun.")
     parser.add_argument("--resume-latest", action="store_true", help="Resume the latest timestamped run under --output-root.")
     parser.add_argument("--force", action="store_true")
@@ -56,6 +57,7 @@ def main() -> None:
         enable_editor_gradient_checkpointing=True if args.enable_editor_gradient_checkpointing is None else args.enable_editor_gradient_checkpointing,
         stock_validation_every=args.stock_validation_every,
         parity_max_Z_gap=args.parity_max_z_gap,
+        backward_scale=args.backward_scale,
         resume_run_root=args.resume_run_root,
         resume_latest=args.resume_latest,
     )

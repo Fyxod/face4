@@ -6,6 +6,7 @@ implementation remains inspectable while FACE4 dispatches only this path.
 from __future__ import annotations
 
 from dataclasses import asdict
+import math
 from pathlib import Path
 import shutil
 import time
@@ -154,6 +155,9 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
 
     from .geometry.combined_face import CombinedFacePerturbation, FaceGeometryConfig, load_face_geometry_config
 
+    if not math.isfinite(cfg.backward_scale) or cfg.backward_scale <= 0.0:
+        raise ValueError(f"backward_scale must be finite and positive, got {cfg.backward_scale!r}")
+
     done_path = output_dir / "DONE.json"
     if done_path.exists() and not cfg.force:
         summary_path = output_dir / "summary.json"
@@ -221,6 +225,7 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         arcface=arcface,
         identity_reference=reference,
         thresholds=thresholds,
+        backward_scale=cfg.backward_scale,
     )
     _write_preflight(output_dir, parity_report, parity_images)
     if cfg.require_parity_preflight and not parity_report["passed"]:
@@ -266,7 +271,24 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         loss = face_loss(Z)
         if not bool(torch.isfinite(loss).item() and torch.isfinite(perturbed_edit).all().item()):
             raise FloatingPointError(f"Non-finite Z/loss at optimizer state {step}")
-        loss.backward()
+        # Manual fp16 loss scaling prevents the tiny edited-output identity
+        # gradient from underflowing inside the frozen VAE/UNet.  Parameters
+        # are fp32 and gradients are divided back before Adam, so the
+        # mathematical objective and update remain exactly loss = Z.
+        (loss * float(cfg.backward_scale)).backward()
+        for parameter in trainable:
+            if parameter.grad is not None:
+                parameter.grad.div_(float(cfg.backward_scale))
+        nonfinite_gradients = [
+            index
+            for index, parameter in enumerate(trainable)
+            if parameter.grad is not None and not bool(torch.isfinite(parameter.grad).all().item())
+        ]
+        if nonfinite_gradients:
+            raise CorrectnessGateError(
+                f"Non-finite geometry gradients after unscale at state {step}; "
+                f"parameter indices={nonfinite_gradients} backward_scale={cfg.backward_scale}"
+            )
         grad_norms = geometry.grad_norms()
         if step == 0 and (not np.isfinite(grad_norms.get("total_grad_norm", 0.0)) or grad_norms.get("total_grad_norm", 0.0) <= 0.0):
             raise CorrectnessGateError(f"No finite geometry gradient reached the optimizer: {grad_norms}")
@@ -309,6 +331,7 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
             best_iter=proposed_best_iter,
             stock_Z=stock_Z,
         )
+        row["backward_scale"] = float(cfg.backward_scale)
         rows.append(row)
         append_jsonl(output_dir / "history.jsonl", row)
         if candidate_is_best:
@@ -363,6 +386,7 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         best_iter=final_best_iter,
         stock_Z=final_Z_stock_tensor,
     )
+    final_row["backward_scale"] = float(cfg.backward_scale)
     rows.append(final_row)
     append_jsonl(output_dir / "history.jsonl", final_row)
     if final_is_best:
