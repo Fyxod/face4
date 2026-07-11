@@ -30,7 +30,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", default="outputs/correctness_check")
     parser.add_argument("--exact-min-ssim", type=float, default=0.999)
     parser.add_argument("--native-pil-min-ssim", type=float, default=0.990)
-    parser.add_argument("--max-z-gap", type=float, default=0.001)
+    parser.add_argument("--exact-max-z-gap", type=float, default=1e-6)
+    parser.add_argument("--native-pil-max-z-gap", type=float, default=0.005)
+    parser.add_argument(
+        "--max-z-gap",
+        type=float,
+        default=None,
+        help="Deprecated alias overriding only --native-pil-max-z-gap.",
+    )
     parser.add_argument("--backward-scale", type=float, default=65536.0)
     return parser.parse_args()
 
@@ -72,6 +79,8 @@ def main() -> None:
         thresholds=ParityThresholds(
             exact_min_ssim=args.exact_min_ssim,
             native_pil_min_ssim=args.native_pil_min_ssim,
+            exact_max_Z_gap=args.exact_max_z_gap,
+            native_pil_max_Z_gap=args.native_pil_max_z_gap,
             max_Z_gap=args.max_z_gap,
         ),
         backward_scale=args.backward_scale,
@@ -102,7 +111,8 @@ def main() -> None:
     write_json(output / "parity_report.json", report)
     print(f"[face4-parity] passed={report['passed']} output={output}")
     print(f"[face4-parity] checks={report['checks']}")
-    print(f"[face4-parity] Z gap={report['max_Z_gap']}")
+    print(f"[face4-parity] exact tensor Z gap={report['exact_tensor_max_Z_gap']}")
+    print(f"[face4-parity] native PIL Z gap={report['native_pil_Z_gap']}")
     print(f"[face4-parity] checkpoint gradients={checkpoint_gradient}")
     if not report["passed"]:
         raise SystemExit(2)

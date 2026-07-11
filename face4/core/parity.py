@@ -20,7 +20,20 @@ class ParityThresholds:
     exact_max_abs: float = 1.0 / 255.0 + 1e-6
     exact_min_ssim: float = 0.999
     native_pil_min_ssim: float = 0.990
-    max_Z_gap: float = 0.001
+    # The differentiable, no-grad, and decorated-stock tensor calls consume
+    # the same canonical tensor and should agree to numerical precision.
+    exact_max_Z_gap: float = 1e-6
+    # Native PIL replay also exercises Diffusers/PIL postprocessing. A tiny
+    # image roundtrip difference can be amplified by ArcFace, so it has its
+    # own deliberately looser (but still fail-fast) public-replay tolerance.
+    native_pil_max_Z_gap: float = 0.005
+    # Deprecated compatibility alias from early FACE4. When supplied, it
+    # overrides only the native-PIL tolerance; it must never weaken the exact
+    # tensor-path correctness gate.
+    max_Z_gap: float | None = None
+
+    def resolved_native_pil_max_Z_gap(self) -> float:
+        return float(self.native_pil_max_Z_gap if self.max_Z_gap is None else self.max_Z_gap)
 
 
 def _pair(left: torch.Tensor, right: torch.Tensor) -> dict[str, float]:
@@ -98,10 +111,29 @@ def run_editor_parity_gate(
         for name in ("grad_vs_no_grad", "grad_vs_stock_tensor")
     )
     native_pil_pass = pairs["stock_tensor_vs_native_pil"]["ssim"] >= limits.native_pil_min_ssim
-    z_present = [value for value in z_values.values() if value is not None]
-    z_gap = max(z_present) - min(z_present) if z_present else 0.0
-    z_pass = z_gap <= limits.max_Z_gap
-    passed = bool(finite_grad and grad_norm > 0.0 and exact_pairs_pass and native_pil_pass and z_pass)
+    exact_z_values = [
+        z_values[name]
+        for name in ("Z_grad", "Z_no_grad", "Z_stock_tensor")
+        if z_values[name] is not None
+    ]
+    exact_z_gap = max(exact_z_values) - min(exact_z_values) if exact_z_values else 0.0
+    native_z = z_values["Z_stock_native_pil"]
+    stock_tensor_z = z_values["Z_stock_tensor"]
+    native_pil_z_gap = (
+        abs(float(native_z) - float(stock_tensor_z))
+        if native_z is not None and stock_tensor_z is not None
+        else 0.0
+    )
+    exact_z_pass = exact_z_gap <= float(limits.exact_max_Z_gap)
+    native_pil_z_pass = native_pil_z_gap <= limits.resolved_native_pil_max_Z_gap()
+    passed = bool(
+        finite_grad
+        and grad_norm > 0.0
+        and exact_pairs_pass
+        and native_pil_pass
+        and exact_z_pass
+        and native_pil_z_pass
+    )
 
     report: dict[str, Any] = {
         "passed": passed,
@@ -113,7 +145,13 @@ def run_editor_parity_gate(
         "backward_scale": float(backward_scale),
         "pairs": pairs,
         **z_values,
-        "max_Z_gap": z_gap,
+        # Keep max_Z_gap for old result readers, but expose the two distinct
+        # semantics explicitly. It is diagnostic only; each path is gated by
+        # its corresponding threshold above.
+        "max_Z_gap": max(exact_z_gap, native_pil_z_gap),
+        "exact_tensor_max_Z_gap": exact_z_gap,
+        "native_pil_Z_gap": native_pil_z_gap,
+        "resolved_native_pil_max_Z_gap": limits.resolved_native_pil_max_Z_gap(),
         "checks": {
             "finite_nonzero_input_gradient": finite_grad and grad_norm > 0.0,
             "grad_no_grad_exact_forward_parity": (
@@ -125,7 +163,10 @@ def run_editor_parity_gate(
                 and pairs["grad_vs_stock_tensor"]["ssim"] >= limits.exact_min_ssim
             ),
             "stock_tensor_native_pil_parity": native_pil_pass,
-            "Z_parity": z_pass,
+            "exact_tensor_Z_parity": exact_z_pass,
+            "native_pil_Z_parity": native_pil_z_pass,
+            # Compatibility roll-up used by older report readers.
+            "Z_parity": exact_z_pass and native_pil_z_pass,
         },
     }
     images = {

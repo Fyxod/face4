@@ -61,7 +61,8 @@ canonical 8-bit input, prompt, seed, and settings:
    standalone correctness command.
 
 The run fails instead of writing a misleading curve if parity exceeds the
-configured thresholds. The default Z-gap tolerance is `0.001`.
+configured thresholds. Exact tensor execution and ordinary PIL replay use the
+separate tolerances documented under Output semantics below.
 
 ## Geometry
 
@@ -83,6 +84,11 @@ Edit [`configs/geometry_default.json`](configs/geometry_default.json) to enable
 components and change limits. A deterministic `small_random` initialization is
 the default because exact identity at neutral geometry gives a stationary
 cosine-similarity objective.
+
+[`configs/geometry_extended_all.json`](configs/geometry_extended_all.json)
+enables all extended spatial components together for a dedicated sanity run.
+Pass `--init small_random` when using that preset so the cosine objective does
+not begin at its exact-identity stationary point.
 
 ## Cases
 
@@ -166,6 +172,18 @@ must agree within tolerance. `summary.json` keeps these quantities separate:
 The public `original_edited.png`, `perturbed_best_edited.png`, and
 `perturbed_final_edited.png` always come from the ordinary decorated stock
 pipeline. Exact-path counterparts are also saved for direct parity inspection.
+
+Parity uses two separate tolerances. Grad-enabled, no-grad, and decorated
+stock **tensor** forwards consume the same canonical tensor and therefore use
+the strict `parity_exact_max_Z_gap` tolerance (default `1e-6`). Ordinary PIL
+public replay includes image save/reload and Diffusers PIL postprocessing; it
+retains the image-SSIM gate and uses `parity_native_pil_max_Z_gap` (default
+`0.005`). The deprecated `--parity-max-z-gap` option, if supplied, overrides
+only the PIL/public-replay tolerance and never weakens exact tensor parity.
+
+`config_resolved.json` is written before parity preflight begins, so failed
+runs preserve the exact enabled components, limits, initialization, and
+thresholds that produced the failure.
 
 Model checkpoints and local resume tensors are ignored by Git.
 

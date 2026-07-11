@@ -57,6 +57,16 @@ class _FakeArcFace(nn.Module):
         return F.normalize(pooled + 1e-3, p=2, dim=1)
 
 
+class _FakeNativePILDivergentEditor(_FakeEditor):
+    """Exact tensor paths agree while native PIL replay differs on purpose."""
+
+    @torch.inference_mode()
+    def stock_edit_pil(self, image, prompt, seed):
+        tensor = pil_to_tensor(image, torch.device("cpu"))
+        edited = self.edit_tensor(tensor, prompt, seed)
+        return tensor_to_pil(torch.flip(edited, dims=(1,)))
+
+
 class _FakePipeline:
     def __init__(self):
         self.vae = SimpleNamespace(config=SimpleNamespace(), enable_slicing=lambda: None)
@@ -148,6 +158,75 @@ class CoreCorrectnessTests(unittest.TestCase):
         self.assertTrue(all(report["checks"].values()), report)
         checkpoint_report = run_checkpoint_gradient_gate(editor, tensor, "prompt", 123)
         self.assertTrue(checkpoint_report["passed"], checkpoint_report)
+
+    def test_parity_gate_separates_exact_tensor_and_native_pil_Z_tolerances(self):
+        rng = np.random.default_rng(17)
+        image = Image.fromarray(rng.integers(0, 256, (32, 32, 3), dtype=np.uint8))
+        tensor = pil_to_tensor(image, torch.device("cpu"))
+        editor = _FakeNativePILDivergentEditor()
+        arcface = _FakeArcFace()
+        with torch.no_grad():
+            clean = editor.edit_tensor(tensor, "prompt", 123)
+        reference = prepare_identity_reference(arcface, clean)
+
+        diagnostic, _ = run_editor_parity_gate(
+            editor,
+            tensor,
+            "prompt",
+            123,
+            arcface=arcface,
+            identity_reference=reference,
+            thresholds=ParityThresholds(
+                exact_min_ssim=0.9999,
+                native_pil_min_ssim=-1.0,
+                exact_max_Z_gap=1e-8,
+                native_pil_max_Z_gap=2.0,
+            ),
+        )
+        self.assertTrue(diagnostic["passed"], diagnostic)
+        self.assertEqual(diagnostic["exact_tensor_max_Z_gap"], 0.0)
+        self.assertGreater(diagnostic["native_pil_Z_gap"], 0.0)
+        self.assertTrue(diagnostic["checks"]["exact_tensor_Z_parity"])
+
+        rejected, _ = run_editor_parity_gate(
+            editor,
+            tensor,
+            "prompt",
+            123,
+            arcface=arcface,
+            identity_reference=reference,
+            thresholds=ParityThresholds(
+                exact_min_ssim=0.9999,
+                native_pil_min_ssim=-1.0,
+                exact_max_Z_gap=1e-8,
+                native_pil_max_Z_gap=0.0,
+            ),
+        )
+        self.assertFalse(rejected["passed"], rejected)
+        self.assertTrue(rejected["checks"]["exact_tensor_Z_parity"])
+        self.assertFalse(rejected["checks"]["native_pil_Z_parity"])
+
+        compatibility = ParityThresholds(native_pil_max_Z_gap=2.0, max_Z_gap=0.25)
+        self.assertEqual(compatibility.resolved_native_pil_max_Z_gap(), 0.25)
+
+    def test_extended_geometry_components_have_finite_forward_and_backward(self):
+        torch.manual_seed(29)
+        config = load_face_geometry_config("configs/geometry_extended_all.json")
+        config.init = "small_random"
+        geometry = CombinedFacePerturbation(32, 32, 3, torch.device("cpu"), seed=31, config=config)
+        image = torch.rand(1, 3, 32, 32)
+        output, aux = geometry(image)
+        self.assertTrue(torch.isfinite(output).all())
+        self.assertTrue(torch.isfinite(aux["displacement"]).all())
+        output.square().mean().backward()
+        enabled_gradients = [
+            parameter.grad
+            for parameter in geometry.parameters()
+            if parameter.requires_grad
+        ]
+        self.assertTrue(enabled_gradients)
+        self.assertTrue(all(gradient is not None for gradient in enabled_gradients))
+        self.assertTrue(all(torch.isfinite(gradient).all() for gradient in enabled_gradients))
 
     def test_tps_parameter_gradient_matches_finite_difference(self):
         # Keep the sampled image fixed: for some random images this particular

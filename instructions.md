@@ -56,3 +56,19 @@ in `history.jsonl` and `summary.json`.
 
 The full command is documented in `README.md`; do not run it until the
 correctness and timing smokes have been inspected.
+
+To test every extended spatial component together, use the dedicated preset
+instead of temporarily editing `geometry_default.json`:
+
+```bash
+$HOME/.local/bin/micromamba run \
+  -p /home/interns/Desktop/mat/.micromamba/envs/mat-a6000 \
+  python -m face4.scripts.smoke_timing \
+  --mat-root /home/interns/Desktop/mat \
+  --arcface-checkpoint /home/interns/Desktop/face4/models/arcface/iresnet100.pth \
+  --geometry-config configs/geometry_extended_all.json \
+  --init small_random \
+  --iters 2 \
+  --edit-steps 20 \
+  --quick
+```

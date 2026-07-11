@@ -24,7 +24,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--init", choices=["neutral", "small_random"], default=None)
     parser.add_argument("--seed", type=int, default=None, help="Optional override; default preserves each case's deterministic seed.")
     parser.add_argument("--stock-validation-every", type=int, default=25)
-    parser.add_argument("--parity-max-z-gap", type=float, default=0.001)
+    parser.add_argument(
+        "--parity-exact-max-z-gap",
+        type=float,
+        default=1e-6,
+        help="Maximum Z gap among grad/no-grad/stock tensor paths.",
+    )
+    parser.add_argument(
+        "--parity-native-pil-max-z-gap",
+        type=float,
+        default=0.005,
+        help="Maximum Z gap for ordinary PIL public replay.",
+    )
+    parser.add_argument(
+        "--parity-max-z-gap",
+        type=float,
+        default=None,
+        help="Deprecated alias overriding only --parity-native-pil-max-z-gap.",
+    )
     parser.add_argument("--backward-scale", type=float, default=65536.0)
     parser.add_argument("--backward-scale-min", type=float, default=1.0)
     parser.add_argument("--backward-scale-backoff", type=float, default=0.5)
@@ -59,6 +76,8 @@ def main() -> None:
         image_guidance_scale=args.image_guidance_scale,
         enable_editor_gradient_checkpointing=True if args.enable_editor_gradient_checkpointing is None else args.enable_editor_gradient_checkpointing,
         stock_validation_every=args.stock_validation_every,
+        parity_exact_max_Z_gap=args.parity_exact_max_z_gap,
+        parity_native_pil_max_Z_gap=args.parity_native_pil_max_z_gap,
         parity_max_Z_gap=args.parity_max_z_gap,
         backward_scale=args.backward_scale,
         backward_scale_min=args.backward_scale_min,

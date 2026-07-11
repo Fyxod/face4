@@ -49,7 +49,10 @@ class RunConfig:
     parity_exact_max_abs: float = 1.0 / 255.0 + 1e-6
     parity_exact_min_ssim: float = 0.999
     parity_native_pil_min_ssim: float = 0.990
-    parity_max_Z_gap: float = 0.001
+    parity_exact_max_Z_gap: float = 1e-6
+    parity_native_pil_max_Z_gap: float = 0.005
+    # Deprecated compatibility override for the native-PIL/public replay.
+    parity_max_Z_gap: float | None = None
     stock_validation_every: int = 25
     backward_scale: float = 65536.0
     backward_scale_min: float = 1.0

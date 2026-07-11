@@ -30,6 +30,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--backward-scale-min", type=float, default=1.0)
     parser.add_argument("--backward-scale-backoff", type=float, default=0.5)
     parser.add_argument("--backward-scale-max-retries", type=int, default=20)
+    parser.add_argument("--parity-exact-max-z-gap", type=float, default=1e-6)
+    parser.add_argument("--parity-native-pil-max-z-gap", type=float, default=0.005)
+    parser.add_argument(
+        "--parity-max-z-gap",
+        type=float,
+        default=None,
+        help="Deprecated alias overriding only the native-PIL Z tolerance.",
+    )
     return parser.parse_args()
 
 
@@ -55,6 +63,9 @@ def main() -> None:
         image_guidance_scale=args.image_guidance_scale,
         enable_editor_gradient_checkpointing=True if args.enable_editor_gradient_checkpointing is None else args.enable_editor_gradient_checkpointing,
         stock_validation_every=1,
+        parity_exact_max_Z_gap=args.parity_exact_max_z_gap,
+        parity_native_pil_max_Z_gap=args.parity_native_pil_max_z_gap,
+        parity_max_Z_gap=args.parity_max_z_gap,
         backward_scale=args.backward_scale,
         backward_scale_min=args.backward_scale_min,
         backward_scale_backoff=args.backward_scale_backoff,

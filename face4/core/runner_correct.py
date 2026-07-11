@@ -110,6 +110,19 @@ def _validate_backward_scale_config(cfg) -> None:
         )
 
 
+def _exact_Z_tolerance(cfg) -> float:
+    """Tolerance for mathematically identical tensor-path forwards."""
+
+    return float(cfg.parity_exact_max_Z_gap)
+
+
+def _native_pil_Z_tolerance(cfg) -> float:
+    """Tolerance for public PIL save/reload/pipeline replay."""
+
+    legacy = getattr(cfg, "parity_max_Z_gap", None)
+    return float(cfg.parity_native_pil_max_Z_gap if legacy is None else legacy)
+
+
 def _next_backward_scale(current: float, minimum: float, backoff: float) -> float:
     """Return a strictly smaller scale, bounded below by ``minimum``."""
 
@@ -230,6 +243,38 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
     optimizer = torch.optim.Adam(trainable, lr=cfg.lr)
     projection = geometry.project_()
 
+    # Persist the resolved geometry and execution settings before doing any
+    # expensive editor work. In particular, a failed parity preflight must
+    # remain reproducible even when the user later edits the source JSON.
+    config_payload = {
+        **asdict(cfg),
+        "spec": {
+            "experiment": "edited_output_identity_exact",
+            "model": spec.model,
+            "face_id": spec.case.face_id,
+            "prompt": spec.case.prompt,
+            "case_id": spec.case.slug,
+            "seed": run_seed,
+            "image_path": str(image_path),
+        },
+        "objective": "Z = cosine_similarity(ArcFace(exact clean edit), ArcFace(exact perturbed edit))",
+        "loss": "loss = Z",
+        "Z_forward": "exact installed Diffusers pipeline body with 8-bit STE forward values",
+        "parity_preflight": {"status": "pending"},
+        "parity_threshold_semantics": {
+            "exact_tensor_Z_gap": _exact_Z_tolerance(cfg),
+            "native_pil_public_replay_Z_gap": _native_pil_Z_tolerance(cfg),
+        },
+        "arcface": arcface.metadata(),
+        "differentiable_instructpix2pix": editor.metadata(),
+        "geometry_config_path": cfg.geometry_config_path,
+        "geometry_config_resolved": geometry_config.__dict__.copy(),
+        "geometry_limits": geometry.limits_dict(),
+        "model_weights_frozen": True,
+        "no_visual_counter_loss": True,
+    }
+    write_json(output_dir / "config_resolved.json", config_payload)
+
     print(f"[face4] generating exact clean edit reference: prompt={spec.case.prompt!r} steps={cfg.edit_steps}")
     with torch.no_grad():
         clean_edit_tensor = editor.edit_tensor(canonical_original, spec.case.prompt, run_seed).detach()
@@ -245,7 +290,8 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         exact_max_abs=cfg.parity_exact_max_abs,
         exact_min_ssim=cfg.parity_exact_min_ssim,
         native_pil_min_ssim=cfg.parity_native_pil_min_ssim,
-        max_Z_gap=cfg.parity_max_Z_gap,
+        exact_max_Z_gap=_exact_Z_tolerance(cfg),
+        native_pil_max_Z_gap=_native_pil_Z_tolerance(cfg),
     )
     print("[face4] running mandatory grad/no-grad/stock parity preflight")
     parity_report, parity_images = run_editor_parity_gate(
@@ -259,33 +305,10 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         backward_scale=cfg.backward_scale,
     )
     _write_preflight(output_dir, parity_report, parity_images)
+    config_payload["parity_preflight"] = parity_report
+    write_json(output_dir / "config_resolved.json", config_payload)
     if cfg.require_parity_preflight and not parity_report["passed"]:
         raise CorrectnessGateError(f"Editor parity preflight failed: {parity_report['checks']}")
-
-    config_payload = {
-        **asdict(cfg),
-        "spec": {
-            "experiment": "edited_output_identity_exact",
-            "model": spec.model,
-            "face_id": spec.case.face_id,
-            "prompt": spec.case.prompt,
-            "case_id": spec.case.slug,
-            "seed": run_seed,
-            "image_path": str(image_path),
-        },
-        "objective": "Z = cosine_similarity(ArcFace(exact clean edit), ArcFace(exact perturbed edit))",
-        "loss": "loss = Z",
-        "Z_forward": "exact installed Diffusers pipeline body with 8-bit STE forward values",
-        "parity_preflight": parity_report,
-        "arcface": arcface.metadata(),
-        "differentiable_instructpix2pix": editor.metadata(),
-        "geometry_config_path": cfg.geometry_config_path,
-        "geometry_config_resolved": geometry_config.__dict__.copy(),
-        "geometry_limits": geometry.limits_dict(),
-        "model_weights_frozen": True,
-        "no_visual_counter_loss": True,
-    }
-    write_json(output_dir / "config_resolved.json", config_payload)
 
     stock_clean_tensor = editor.stock_edit_tensor(canonical_original, spec.case.prompt, run_seed)
     stock_reference = prepare_identity_reference(arcface, stock_clean_tensor)
@@ -367,10 +390,10 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         stock_Z = None
         if step == 0 or (cfg.stock_validation_every > 0 and step % cfg.stock_validation_every == 0):
             stock_Z, _, _ = _stock_Z(editor, arcface, perturbed, spec.case.prompt, run_seed, stock_reference)
-            if abs(stock_Z - current_Z) > cfg.parity_max_Z_gap:
+            if abs(stock_Z - current_Z) > _exact_Z_tolerance(cfg):
                 raise CorrectnessGateError(
                     f"Stock Z parity failed at state {step}: exact={current_Z:.8f} stock={stock_Z:.8f} "
-                    f"gap={abs(stock_Z-current_Z):.8f}"
+                    f"gap={abs(stock_Z-current_Z):.8f} exact_tensor_tolerance={_exact_Z_tolerance(cfg):.8f}"
                 )
 
         row = _make_row(
@@ -425,9 +448,11 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         editor, arcface, final_perturbed_tensor, spec.case.prompt, run_seed, stock_reference
     )
     final_Z_value = float(final_Z_exact.detach().float().cpu())
-    if abs(final_Z_stock_tensor - final_Z_value) > cfg.parity_max_Z_gap:
+    if abs(final_Z_stock_tensor - final_Z_value) > _exact_Z_tolerance(cfg):
         raise CorrectnessGateError(
-            f"Final stock Z parity failed: exact={final_Z_value:.8f} stock={final_Z_stock_tensor:.8f}"
+            f"Final stock Z parity failed: exact={final_Z_value:.8f} stock={final_Z_stock_tensor:.8f} "
+            f"gap={abs(final_Z_stock_tensor-final_Z_value):.8f} "
+            f"exact_tensor_tolerance={_exact_Z_tolerance(cfg):.8f}"
         )
     final_is_best = best is None or final_Z_value < float(best["row"]["Z"])
     final_best_Z = final_Z_value if final_is_best else float(best["row"]["Z"])
@@ -516,13 +541,14 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
     if (
         best_exact_vs_stock["ssim"] < cfg.parity_native_pil_min_ssim
         or final_exact_vs_stock["ssim"] < cfg.parity_native_pil_min_ssim
-        or best_Z_gap > cfg.parity_max_Z_gap
-        or final_Z_gap > cfg.parity_max_Z_gap
+        or best_Z_gap > _native_pil_Z_tolerance(cfg)
+        or final_Z_gap > _native_pil_Z_tolerance(cfg)
     ):
         raise CorrectnessGateError(
             "Final public replay parity failed: "
             f"best_ssim={best_exact_vs_stock['ssim']:.6f}, final_ssim={final_exact_vs_stock['ssim']:.6f}, "
-            f"best_Z_gap={best_Z_gap:.6f}, final_Z_gap={final_Z_gap:.6f}"
+            f"best_Z_gap={best_Z_gap:.6f}, final_Z_gap={final_Z_gap:.6f}, "
+            f"native_pil_Z_tolerance={_native_pil_Z_tolerance(cfg):.6f}"
         )
 
     _component_flow_images(final_aux, output_dir, geometry.component_limit_for_flow, geometry)
