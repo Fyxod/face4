@@ -35,8 +35,9 @@ FACE4 changes the execution contract:
   backward derivative;
 - the ArcFace iResNet topology matches InsightFace Conv-to-BN downsample blocks,
   and checkpoint loading must be exact;
-- fp16 backward uses standard loss scaling and unscales geometry gradients
-  before Adam, preventing small identity gradients from underflowing without
+- fp16 backward uses adaptive loss scaling and unscales geometry gradients
+  before Adam. If a state overflows, FACE4 retries that same state at a lower
+  scale before any optimizer update; this prevents underflow/overflow without
   changing `loss = Z`;
 - every logged Z, image, flow, parameter diagnostic, and best iteration refers
   to one consistent pre-update geometry state;
@@ -128,6 +129,9 @@ $HOME/.local/bin/micromamba run \
 ```
 
 Then run all four smoke cases with `--all-cases`.
+
+The effective loss scale and any same-state retries are recorded in every
+history row. A retry does not advance Adam or alter the geometry parameters.
 
 ## Full matrix
 

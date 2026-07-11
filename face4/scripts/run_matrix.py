@@ -26,6 +26,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stock-validation-every", type=int, default=25)
     parser.add_argument("--parity-max-z-gap", type=float, default=0.001)
     parser.add_argument("--backward-scale", type=float, default=65536.0)
+    parser.add_argument("--backward-scale-min", type=float, default=1.0)
+    parser.add_argument("--backward-scale-backoff", type=float, default=0.5)
+    parser.add_argument("--backward-scale-max-retries", type=int, default=20)
     parser.add_argument("--resume-run-root", default=None, help="Resume a specific timestamped run root; skips DONE cases and archives incomplete cases before rerun.")
     parser.add_argument("--resume-latest", action="store_true", help="Resume the latest timestamped run under --output-root.")
     parser.add_argument("--force", action="store_true")
@@ -58,6 +61,9 @@ def main() -> None:
         stock_validation_every=args.stock_validation_every,
         parity_max_Z_gap=args.parity_max_z_gap,
         backward_scale=args.backward_scale,
+        backward_scale_min=args.backward_scale_min,
+        backward_scale_backoff=args.backward_scale_backoff,
+        backward_scale_max_retries=args.backward_scale_max_retries,
         resume_run_root=args.resume_run_root,
         resume_latest=args.resume_latest,
     )

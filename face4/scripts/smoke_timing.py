@@ -26,6 +26,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lr", type=float, default=0.05)
     parser.add_argument("--init", choices=["neutral", "small_random"], default=None)
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--backward-scale", type=float, default=65536.0)
+    parser.add_argument("--backward-scale-min", type=float, default=1.0)
+    parser.add_argument("--backward-scale-backoff", type=float, default=0.5)
+    parser.add_argument("--backward-scale-max-retries", type=int, default=20)
     return parser.parse_args()
 
 
@@ -51,6 +55,10 @@ def main() -> None:
         image_guidance_scale=args.image_guidance_scale,
         enable_editor_gradient_checkpointing=True if args.enable_editor_gradient_checkpointing is None else args.enable_editor_gradient_checkpointing,
         stock_validation_every=1,
+        backward_scale=args.backward_scale,
+        backward_scale_min=args.backward_scale_min,
+        backward_scale_backoff=args.backward_scale_backoff,
+        backward_scale_max_retries=args.backward_scale_max_retries,
     )
     summary = run_matrix(cfg)
     estimates = summary.get("time_estimates", {})

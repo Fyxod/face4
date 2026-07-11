@@ -13,6 +13,7 @@ from face4.core.identity import prepare_identity_reference
 from face4.core.geometry.combined_face import CombinedFacePerturbation, load_face_geometry_config
 from face4.core.image_metrics import pil_to_tensor, tensor_to_pil
 from face4.core.parity import ParityThresholds, run_checkpoint_gradient_gate, run_editor_parity_gate
+from face4.core.runner_correct import _next_backward_scale
 from face4.models.differentiable_instruct import (
     DifferentiableInstructPix2Pix,
     DifferentiableInstructSettings,
@@ -82,6 +83,16 @@ class _FakeExactEditor(DifferentiableInstructPix2Pix):
 
 
 class CoreCorrectnessTests(unittest.TestCase):
+    def test_backward_scale_backoff_reaches_and_stays_at_minimum(self):
+        scale = 65536.0
+        observed = []
+        while scale > 1.0:
+            scale = _next_backward_scale(scale, 1.0, 0.5)
+            observed.append(scale)
+        self.assertEqual(len(observed), 16)
+        self.assertEqual(observed[-1], 1.0)
+        self.assertEqual(_next_backward_scale(1.0, 1.0, 0.5), 1.0)
+
     def test_ste_forward_is_exact_8bit_and_backward_is_identity(self):
         value = torch.tensor([0.12345, 0.501, -0.2, 1.2], requires_grad=True)
         quantized = quantize_8bit_ste(value)

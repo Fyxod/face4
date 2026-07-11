@@ -89,6 +89,38 @@ def _stock_Z(editor, arcface, perturbed, prompt: str, seed: int, stock_reference
     return float(value.detach().float().cpu()), _float_terms(terms), edited.detach()
 
 
+def _validate_backward_scale_config(cfg) -> None:
+    if not math.isfinite(cfg.backward_scale) or cfg.backward_scale <= 0.0:
+        raise ValueError(f"backward_scale must be finite and positive, got {cfg.backward_scale!r}")
+    if not math.isfinite(cfg.backward_scale_min) or cfg.backward_scale_min <= 0.0:
+        raise ValueError(f"backward_scale_min must be finite and positive, got {cfg.backward_scale_min!r}")
+    if cfg.backward_scale_min > cfg.backward_scale:
+        raise ValueError(
+            f"backward_scale_min ({cfg.backward_scale_min}) cannot exceed "
+            f"backward_scale ({cfg.backward_scale})"
+        )
+    if not math.isfinite(cfg.backward_scale_backoff) or not 0.0 < cfg.backward_scale_backoff < 1.0:
+        raise ValueError(
+            "backward_scale_backoff must be finite and strictly between 0 and 1, "
+            f"got {cfg.backward_scale_backoff!r}"
+        )
+    if cfg.backward_scale_max_retries < 0:
+        raise ValueError(
+            f"backward_scale_max_retries must be nonnegative, got {cfg.backward_scale_max_retries!r}"
+        )
+
+
+def _next_backward_scale(current: float, minimum: float, backoff: float) -> float:
+    """Return a strictly smaller scale, bounded below by ``minimum``."""
+
+    current = float(current)
+    minimum = float(minimum)
+    candidate = max(minimum, current * float(backoff))
+    if candidate >= current:
+        return current
+    return candidate
+
+
 def _make_row(
     *,
     iteration: int,
@@ -155,8 +187,7 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
 
     from .geometry.combined_face import CombinedFacePerturbation, FaceGeometryConfig, load_face_geometry_config
 
-    if not math.isfinite(cfg.backward_scale) or cfg.backward_scale <= 0.0:
-        raise ValueError(f"backward_scale must be finite and positive, got {cfg.backward_scale!r}")
+    _validate_backward_scale_config(cfg)
 
     done_path = output_dir / "DONE.json"
     if done_path.exists() and not cfg.force:
@@ -260,38 +291,71 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
     stock_reference = prepare_identity_reference(arcface, stock_clean_tensor)
     rows: list[dict[str, Any]] = []
     best: dict[str, Any] | None = None
+    effective_backward_scale = float(cfg.backward_scale)
+    backward_scale_reductions_total = 0
+    backward_retries_total = 0
+    max_backward_retries_at_state = 0
 
     for step in range(cfg.iters):
         iter_started = time.monotonic()
-        optimizer.zero_grad(set_to_none=True)
-        raw_perturbed, aux = geometry(original_tensor)
-        perturbed = editor.canonical_input(raw_perturbed)
-        perturbed_edit = editor.edit_tensor(perturbed, spec.case.prompt, run_seed)
-        Z, terms = identity_objective(arcface, perturbed_edit, reference)
-        loss = face_loss(Z)
-        if not bool(torch.isfinite(loss).item() and torch.isfinite(perturbed_edit).all().item()):
-            raise FloatingPointError(f"Non-finite Z/loss at optimizer state {step}")
-        # Manual fp16 loss scaling prevents the tiny edited-output identity
-        # gradient from underflowing inside the frozen VAE/UNet.  Parameters
-        # are fp32 and gradients are divided back before Adam, so the
-        # mathematical objective and update remain exactly loss = Z.
-        (loss * float(cfg.backward_scale)).backward()
-        for parameter in trainable:
-            if parameter.grad is not None:
-                parameter.grad.div_(float(cfg.backward_scale))
-        nonfinite_gradients = [
-            index
-            for index, parameter in enumerate(trainable)
-            if parameter.grad is not None and not bool(torch.isfinite(parameter.grad).all().item())
-        ]
-        if nonfinite_gradients:
-            raise CorrectnessGateError(
-                f"Non-finite geometry gradients after unscale at state {step}; "
-                f"parameter indices={nonfinite_gradients} backward_scale={cfg.backward_scale}"
+        backward_retry_count = 0
+        attempted_backward_scales: list[float] = []
+        while True:
+            optimizer.zero_grad(set_to_none=True)
+            raw_perturbed, aux = geometry(original_tensor)
+            perturbed = editor.canonical_input(raw_perturbed)
+            perturbed_edit = editor.edit_tensor(perturbed, spec.case.prompt, run_seed)
+            Z, terms = identity_objective(arcface, perturbed_edit, reference)
+            loss = face_loss(Z)
+            if not bool(torch.isfinite(loss).item() and torch.isfinite(perturbed_edit).all().item()):
+                raise FloatingPointError(f"Non-finite Z/loss at optimizer state {step}")
+
+            # Manual fp16 loss scaling prevents the tiny edited-output
+            # identity gradient from underflowing inside the frozen VAE/UNet.
+            # If a particular state overflows, retry that exact state with a
+            # lower scale. Geometry and Adam remain untouched until a finite
+            # unscaled gradient is available, so no optimizer update is lost
+            # or silently skipped and the mathematical loss remains Z.
+            attempted_backward_scales.append(float(effective_backward_scale))
+            (loss * float(effective_backward_scale)).backward()
+            for parameter in trainable:
+                if parameter.grad is not None:
+                    parameter.grad.div_(float(effective_backward_scale))
+            nonfinite_gradients = [
+                index
+                for index, parameter in enumerate(trainable)
+                if parameter.grad is not None and not bool(torch.isfinite(parameter.grad).all().item())
+            ]
+            if not nonfinite_gradients:
+                break
+
+            next_scale = _next_backward_scale(
+                effective_backward_scale,
+                cfg.backward_scale_min,
+                cfg.backward_scale_backoff,
             )
+            if backward_retry_count >= cfg.backward_scale_max_retries or next_scale >= effective_backward_scale:
+                raise CorrectnessGateError(
+                    f"Non-finite geometry gradients after adaptive loss-scale retries at state {step}; "
+                    f"parameter indices={nonfinite_gradients} attempted_scales={attempted_backward_scales} "
+                    f"minimum={cfg.backward_scale_min} max_retries={cfg.backward_scale_max_retries}"
+                )
+            print(
+                f"[face4] non-finite fp16 backward at state {step} with scale "
+                f"{effective_backward_scale:g}; retrying the same state with {next_scale:g}"
+            )
+            effective_backward_scale = next_scale
+            backward_retry_count += 1
+            backward_retries_total += 1
+            backward_scale_reductions_total += 1
+
+        max_backward_retries_at_state = max(max_backward_retries_at_state, backward_retry_count)
         grad_norms = geometry.grad_norms()
-        if step == 0 and (not np.isfinite(grad_norms.get("total_grad_norm", 0.0)) or grad_norms.get("total_grad_norm", 0.0) <= 0.0):
-            raise CorrectnessGateError(f"No finite geometry gradient reached the optimizer: {grad_norms}")
+        if not np.isfinite(grad_norms.get("total_grad_norm", 0.0)) or grad_norms.get("total_grad_norm", 0.0) <= 0.0:
+            raise CorrectnessGateError(
+                f"No finite nonzero geometry gradient reached the optimizer at state {step}: {grad_norms}; "
+                f"effective_backward_scale={effective_backward_scale} retries={backward_retry_count}"
+            )
 
         with torch.no_grad():
             _, input_identity_terms = identity_objective(arcface, perturbed, input_identity_reference)
@@ -331,7 +395,11 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
             best_iter=proposed_best_iter,
             stock_Z=stock_Z,
         )
-        row["backward_scale"] = float(cfg.backward_scale)
+        row["backward_scale"] = float(effective_backward_scale)
+        row["backward_scale_initial"] = float(cfg.backward_scale)
+        row["backward_retry_count"] = int(backward_retry_count)
+        row["backward_scale_reductions_total"] = int(backward_scale_reductions_total)
+        row["backward_attempted_scales"] = ",".join(f"{value:g}" for value in attempted_backward_scales)
         rows.append(row)
         append_jsonl(output_dir / "history.jsonl", row)
         if candidate_is_best:
@@ -386,7 +454,11 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         best_iter=final_best_iter,
         stock_Z=final_Z_stock_tensor,
     )
-    final_row["backward_scale"] = float(cfg.backward_scale)
+    final_row["backward_scale"] = float(effective_backward_scale)
+    final_row["backward_scale_initial"] = float(cfg.backward_scale)
+    final_row["backward_retry_count"] = 0
+    final_row["backward_scale_reductions_total"] = int(backward_scale_reductions_total)
+    final_row["backward_attempted_scales"] = ""
     rows.append(final_row)
     append_jsonl(output_dir / "history.jsonl", final_row)
     if final_is_best:
@@ -509,6 +581,11 @@ def optimize_one_correct(spec, cfg, arcface, editor, device, output_dir: Path) -
         "seed": run_seed,
         "iters": cfg.iters,
         "optimizer_updates_completed": cfg.iters,
+        "backward_scale_initial": float(cfg.backward_scale),
+        "backward_scale_final": float(effective_backward_scale),
+        "backward_retries_total": int(backward_retries_total),
+        "backward_scale_reductions_total": int(backward_scale_reductions_total),
+        "max_backward_retries_at_state": int(max_backward_retries_at_state),
         "Z_definition": "ArcFace cosine similarity between exact clean and perturbed edited outputs",
         "loss": "loss = Z",
         "Z_is_stock_equivalent_forward": True,

@@ -52,6 +52,9 @@ class RunConfig:
     parity_max_Z_gap: float = 0.001
     stock_validation_every: int = 25
     backward_scale: float = 65536.0
+    backward_scale_min: float = 1.0
+    backward_scale_backoff: float = 0.5
+    backward_scale_max_retries: int = 20
     resume_run_root: str | None = None
     resume_latest: bool = False
 
@@ -166,6 +169,9 @@ REQUIRED_HISTORY_FIELDS = {
     "num_at_max_total",
     "components_at_boundary",
     "total_geometry_grad_norm",
+    "backward_scale",
+    "backward_retry_count",
+    "backward_scale_reductions_total",
     "input_identity_cosine_similarity_raw",
     "input_identity_cosine_distance",
     "input_identity_similarity_score_pct",

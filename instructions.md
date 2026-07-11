@@ -49,5 +49,10 @@ $HOME/.local/bin/micromamba run \
   --quick
 ```
 
+The runner starts with fp16 loss scale `65536` and automatically retries the
+same optimizer state at lower scales if a backward pass overflows. Confirm the
+result has `status: complete`; retry counts and the effective scale are saved
+in `history.jsonl` and `summary.json`.
+
 The full command is documented in `README.md`; do not run it until the
 correctness and timing smokes have been inspected.
