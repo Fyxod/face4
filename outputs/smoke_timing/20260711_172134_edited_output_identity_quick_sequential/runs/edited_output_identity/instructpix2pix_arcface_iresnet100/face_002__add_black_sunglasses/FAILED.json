@@ -1,0 +1,4 @@
+{
+  "error": "CorrectnessGateError(\"Editor parity preflight failed: {'finite_nonzero_input_gradient': True, 'grad_no_grad_exact_forward_parity': True, 'grad_stock_tensor_exact_forward_parity': True, 'stock_tensor_native_pil_parity': True, 'Z_parity': False}\")",
+  "status": "failed"
+}

@@ -1,0 +1,58 @@
+{
+  "Z_grad": 0.9840476512908936,
+  "Z_no_grad": 0.9840476512908936,
+  "Z_stock_native_pil": 0.9826856851577759,
+  "Z_stock_tensor": 0.9840476512908936,
+  "backward_scale": 65536.0,
+  "checks": {
+    "Z_parity": false,
+    "finite_nonzero_input_gradient": true,
+    "grad_no_grad_exact_forward_parity": true,
+    "grad_stock_tensor_exact_forward_parity": true,
+    "stock_tensor_native_pil_parity": true
+  },
+  "input_gradient_finite": true,
+  "input_gradient_norm": 0.25587451457977295,
+  "max_Z_gap": 0.0013619661331176758,
+  "pairs": {
+    "grad_vs_no_grad": {
+      "l2": 0.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "mse": 0.0,
+      "psnr": 100.0,
+      "ssim": 1.0,
+      "tensor_max_abs": 0.0,
+      "tensor_mean_abs": 0.0
+    },
+    "grad_vs_stock_tensor": {
+      "l2": 0.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "mse": 0.0,
+      "psnr": 100.0,
+      "ssim": 1.0,
+      "tensor_max_abs": 0.0,
+      "tensor_mean_abs": 0.0
+    },
+    "stock_tensor_vs_native_pil": {
+      "l2": 0.00099763364957422,
+      "max_abs": 0.047058820724487305,
+      "mean_abs": 0.00024172714620362967,
+      "mse": 9.95272898762778e-07,
+      "psnr": 60.02057821589217,
+      "ssim": 0.9996972680091858,
+      "tensor_max_abs": 0.047058820724487305,
+      "tensor_mean_abs": 0.00024174840655177832
+    }
+  },
+  "passed": false,
+  "prompt": "add black sunglasses",
+  "seed": 250852,
+  "thresholds": {
+    "exact_max_abs": 0.0039225686274509805,
+    "exact_min_ssim": 0.999,
+    "max_Z_gap": 0.001,
+    "native_pil_min_ssim": 0.99
+  }
+}
