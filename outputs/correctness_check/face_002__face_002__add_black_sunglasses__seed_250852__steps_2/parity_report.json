@@ -24,11 +24,14 @@
     "trainable_parameter_count": 0,
     "unexpected_state_entries": []
   },
+  "backward_scale": 65536.0,
   "checkpoint_gradient_parity": {
-    "checkpoint_gradient_norm": 0.0,
+    "backward_scale": 65536.0,
+    "checkpoint_gradient_norm": 0.072208471596241,
     "finite_gradients": true,
-    "gradient_cosine_similarity": 0.0,
-    "gradient_relative_l2_error": 0.0,
+    "gradient_cosine_similarity": 0.9999977350234985,
+    "gradient_relative_l2_error": 0.0021271272814362367,
+    "nonzero_gradients": true,
     "output_metrics": {
       "l2": 0.0,
       "max_abs": 0.0,
@@ -39,8 +42,8 @@
       "tensor_max_abs": 0.0,
       "tensor_mean_abs": 0.0
     },
-    "passed": false,
-    "plain_gradient_norm": 9.999999960041972e-13,
+    "passed": true,
+    "plain_gradient_norm": 0.0722145214676857,
     "thresholds": {
       "max_relative_l2": 0.1,
       "min_gradient_cosine": 0.995,
@@ -49,7 +52,7 @@
   },
   "checks": {
     "Z_parity": true,
-    "finite_nonzero_input_gradient": false,
+    "finite_nonzero_input_gradient": true,
     "grad_no_grad_exact_forward_parity": true,
     "grad_stock_tensor_exact_forward_parity": true,
     "stock_tensor_native_pil_parity": true
@@ -112,7 +115,7 @@
     "vae_scale_factor": 8
   },
   "input_gradient_finite": true,
-  "input_gradient_norm": 0.0,
+  "input_gradient_norm": 0.22026889026165009,
   "max_Z_gap": 7.152557373046875e-07,
   "pairs": {
     "grad_vs_no_grad": {
@@ -146,7 +149,7 @@
       "tensor_mean_abs": 1.1281499290305419e-08
     }
   },
-  "passed": false,
+  "passed": true,
   "prompt": "add black sunglasses",
   "seed": 250852,
   "thresholds": {
