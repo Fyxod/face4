@@ -1,0 +1,39 @@
+{
+  "all_cases": false,
+  "all_per_iteration_logging_fields_populated": true,
+  "clamp_project_logic_active": true,
+  "editor_num_inference_steps": 2,
+  "execution": "sequential",
+  "experiment": "edited_output_identity",
+  "failures": [
+    {
+      "error": "CorrectnessGateError('Non-finite geometry gradients after unscale at state 1; parameter indices=[0, 1, 2] backward_scale=65536.0')",
+      "run_dir": "outputs/smoke_timing/20260711_165452_edited_output_identity_quick_sequential/runs/edited_output_identity/instructpix2pix_arcface_iresnet100/face_002__add_black_sunglasses",
+      "spec": "edited_output_identity__face_002__add_black_sunglasses"
+    }
+  ],
+  "iters": 2,
+  "mode": "smoke_timing",
+  "num_failures": 1,
+  "num_runs_attempted": 1,
+  "num_runs_completed": 0,
+  "nvidia_smi_memory_gb": 3.0458984375,
+  "output_root": "outputs/smoke_timing/20260711_165452_edited_output_identity_quick_sequential",
+  "peak_vram_gb": 7.68686580657959,
+  "quick": true,
+  "status": "failed",
+  "summaries": [],
+  "time_estimates": {
+    "estimated_fixed_overhead_seconds": null,
+    "estimated_full_matrix_seconds_per_iteration": null,
+    "estimated_runtime_seconds_for_100_iterations": null,
+    "estimated_runtime_seconds_for_150_iterations": null,
+    "estimated_runtime_seconds_for_400_iterations": null,
+    "estimated_runtime_seconds_for_50_iterations": null,
+    "estimates_valid": false,
+    "invalid_reason": "no completed runs; timing estimates are unavailable",
+    "observed_completed_runs": 0,
+    "observed_mean_seconds_per_iteration_per_run": null
+  },
+  "wall_seconds": 27.498959382995963
+}
