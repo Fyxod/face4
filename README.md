@@ -194,3 +194,10 @@ case definition remains comparable. Standard ArcFace deployments normally use
 detected and aligned 112x112 face crops. FACE4 fixes checkpoint/model
 correctness and stock-forward parity, but the full-image preprocessing choice
 should still be stated when interpreting absolute cosine values.
+
+
+$HOME/.local/bin/micromamba run \
+  -p /home/interns/Desktop/mat/.micromamba/envs/mat-a6000 \
+  python -m face4.scripts.summarize_runs \
+  --results-root outputs/edited_output_identity_exact \
+  --output-root outputs/reports/edited_output_identity_exact

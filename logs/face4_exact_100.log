@@ -9,3 +9,31 @@
 Loading pipeline components...:  83%|████████▎ | 5/6 [00:02<00:00,  1.97it/s]Loading pipeline components...: 100%|██████████| 6/6 [00:07<00:00,  1.85s/it]Loading pipeline components...: 100%|██████████| 6/6 [00:07<00:00,  1.22s/it]
 /home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
   with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+[face4] running edited_output_identity__face_002__add_black_sunglasses image=/home/interns/Desktop/mat/data/face_002/instruct_512.png seed=250852
+[face4] generating exact clean edit reference: prompt='add black sunglasses' steps=20
+[face4] running mandatory grad/no-grad/stock parity preflight
+[face4] non-finite fp16 backward at state 85 with scale 65536; retrying the same state with 32768
+[face4] non-finite fp16 backward at state 85 with scale 32768; retrying the same state with 16384
+[face4] non-finite fp16 backward at state 85 with scale 16384; retrying the same state with 8192
+[face4] running edited_output_identity__face_002__add_headphones image=/home/interns/Desktop/mat/data/face_002/instruct_512.png seed=438717
+[face4] generating exact clean edit reference: prompt='add headphones' steps=20
+[face4] running mandatory grad/no-grad/stock parity preflight
+[face4] non-finite fp16 backward at state 32 with scale 65536; retrying the same state with 32768
+[face4] running edited_output_identity__face_005__add_black_sunglasses image=/home/interns/Desktop/mat/data/face_005/instruct_512.png seed=67119
+[face4] generating exact clean edit reference: prompt='add black sunglasses' steps=20
+[face4] running mandatory grad/no-grad/stock parity preflight
+[face4] running edited_output_identity__face_005__add_headphones image=/home/interns/Desktop/mat/data/face_005/instruct_512.png seed=405993
+[face4] generating exact clean edit reference: prompt='add headphones' steps=20
+[face4] running mandatory grad/no-grad/stock parity preflight
+[face4] non-finite fp16 backward at state 9 with scale 65536; retrying the same state with 32768
+[face4-run] wrote: outputs/edited_output_identity_2/20260713_103809_edited_output_identity_all_sequential

@@ -1,0 +1,148 @@
+<!doctype html><html><head><meta charset='utf-8'><title>FACE4 report</title><style>
+
+    body { margin:0; font-family: Inter, "Segoe UI", Arial, sans-serif; color:#17202a; background:white; }
+    main { max-width:1180px; margin:0 auto; padding:34px 28px 70px; }
+    h1 { font-size:34px; margin:0 0 6px; }
+    h2 { margin-top:48px; padding-top:18px; border-top:2px solid #d7dde5; }
+    h3 { margin-top:30px; }
+    .subtitle,.small { color:#5d6d7e; }
+    .card { border:1px solid #d7dde5; border-radius:12px; padding:18px; margin:20px 0; background:white; }
+    table { border-collapse:collapse; width:100%; font-size:13px; margin:12px 0 22px; }
+    th,td { border:1px solid #d7dde5; padding:7px 9px; vertical-align:top; }
+    th { background:#f6f8fb; text-align:left; }
+    .strip { width:100%; border:1px solid #d7dde5; border-radius:10px; display:block; }
+    .graph-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(430px,1fr)); gap:18px; }
+    figure { border:1px solid #d7dde5; border-radius:10px; padding:12px; margin:0; }
+    figure img { width:100%; display:block; }
+    figcaption { font-weight:650; margin-bottom:10px; }
+    .path { font-family:Consolas, monospace; font-size:12px; word-break:break-all; }
+    
+</style></head><body><main>
+<h1>FACE4: Edited-output ArcFace White-box Optimization</h1><p class='subtitle'>Exact stock-equivalent InstructPix2Pix edit identity results with geometric perturbations</p><p class='small'>Author: Parth Katiyar</p>
+<div class='card'><p>FACE4 optimizes <code>Z = cosine_similarity</code> between frozen ArcFace iResNet-100 embeddings of the clean InstructPix2Pix edit and the perturbed InstructPix2Pix edit. The loss is exactly <code>loss = Z</code>. InstructPix2Pix and ArcFace weights are frozen; only perturbation parameters are optimized. TPS, Delaunay, and rolling are coordinate perturbations. DCT is a blockwise image-frequency coefficient perturbation, not a flow field.</p></div>
+<div class='card'><p>The iteration graph shows the exact stock-equivalent <code>Z</code> used for optimization. Normal decorated stock-pipeline Z is retained as a parity measurement; the configured correctness gate stops the run if the two values diverge beyond tolerance.</p></div>
+<h2>1. Run matrix</h2><p>Four prompt-labeled cases are retained. The prompt conditions the differentiable InstructPix2Pix edit inside the optimization objective.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>face</th>
+<th>prompt</th>
+<th>final Z</th>
+<th>best Z</th>
+<th>final stock Z</th>
+<th>best stock Z</th>
+<th>best Z gap</th>
+<th>final edit cosine sim</th>
+<th>final edit score %</th>
+<th>orig vs orig-edit %</th>
+<th>perturbed vs best-edit %</th>
+<th>orig vs perturbed %</th>
+<th>SSIM</th>
+<th>PSNR</th>
+<th>edit output SSIM</th>
+<th>max disp px</th>
+<th>DCT gain mean abs</th>
+<th>DCT energy change</th>
+<th>fraction clamped</th>
+<th>stock public edits</th>
+</tr></thead><tbody>
+<tr>
+<td>face_002</td>
+<td>add black sunglasses</td>
+<td>0.6399</td>
+<td>0.6254</td>
+<td>0.6393</td>
+<td>0.6263</td>
+<td>0.0009</td>
+<td>0.6393</td>
+<td>63.935</td>
+<td>66.800</td>
+<td>77.556</td>
+<td>75.725</td>
+<td>0.5858</td>
+<td>20.997</td>
+<td>0.5325</td>
+<td>15.380</td>
+<td>None</td>
+<td>None</td>
+<td>0.0294</td>
+<td>1.0000</td>
+</tr>
+<tr>
+<td>face_002</td>
+<td>add headphones</td>
+<td>0.5642</td>
+<td>0.5598</td>
+<td>0.5634</td>
+<td>0.5601</td>
+<td>0.0003</td>
+<td>0.5634</td>
+<td>56.340</td>
+<td>93.824</td>
+<td>93.481</td>
+<td>66.173</td>
+<td>0.5744</td>
+<td>19.748</td>
+<td>0.4797</td>
+<td>15.766</td>
+<td>None</td>
+<td>None</td>
+<td>0.0490</td>
+<td>1.0000</td>
+</tr>
+<tr>
+<td>face_005</td>
+<td>add black sunglasses</td>
+<td>0.4251</td>
+<td>0.4208</td>
+<td>0.4268</td>
+<td>0.4210</td>
+<td>0.0003</td>
+<td>0.4268</td>
+<td>42.682</td>
+<td>60.023</td>
+<td>25.664</td>
+<td>79.736</td>
+<td>0.7746</td>
+<td>23.321</td>
+<td>0.7423</td>
+<td>11.384</td>
+<td>None</td>
+<td>None</td>
+<td>0.0000</td>
+<td>1.0000</td>
+</tr>
+<tr>
+<td>face_005</td>
+<td>add headphones</td>
+<td>0.6677</td>
+<td>0.6136</td>
+<td>0.6665</td>
+<td>0.6149</td>
+<td>0.0013</td>
+<td>0.6665</td>
+<td>66.652</td>
+<td>93.424</td>
+<td>90.574</td>
+<td>74.408</td>
+<td>0.7479</td>
+<td>22.339</td>
+<td>0.6723</td>
+<td>15.107</td>
+<td>None</td>
+<td>None</td>
+<td>0.0784</td>
+<td>1.0000</td>
+</tr>
+</tbody></table></div>
+<h2>2. Case image strips</h2>
+<div class='card'><h3>face_002 — add black sunglasses</h3><img class='strip' src='strips/face_face_002_add_black_sunglasses.png' alt='strip'><p class='path'>outputs/edited_output_identity_exact/20260711_174813_edited_output_identity_all_sequential/runs/edited_output_identity/instructpix2pix_arcface_iresnet100/face_002__add_black_sunglasses</p></div>
+<div class='card'><h3>face_002 — add headphones</h3><img class='strip' src='strips/face_face_002_add_headphones.png' alt='strip'><p class='path'>outputs/edited_output_identity_exact/20260711_174813_edited_output_identity_all_sequential/runs/edited_output_identity/instructpix2pix_arcface_iresnet100/face_002__add_headphones</p></div>
+<div class='card'><h3>face_005 — add black sunglasses</h3><img class='strip' src='strips/face_face_005_add_black_sunglasses.png' alt='strip'><p class='path'>outputs/edited_output_identity_exact/20260711_174813_edited_output_identity_all_sequential/runs/edited_output_identity/instructpix2pix_arcface_iresnet100/face_005__add_black_sunglasses</p></div>
+<div class='card'><h3>face_005 — add headphones</h3><img class='strip' src='strips/face_face_005_add_headphones.png' alt='strip'><p class='path'>outputs/edited_output_identity_exact/20260711_174813_edited_output_identity_all_sequential/runs/edited_output_identity/instructpix2pix_arcface_iresnet100/face_005__add_headphones</p></div>
+<h2>3. Graphs</h2><div class='graph-grid'>
+<figure><figcaption>Z vs iteration</figcaption><a href='graphs/z_vs_iteration.png'><img src='graphs/z_vs_iteration.png'></a></figure>
+<figure><figcaption>Loss vs iteration</figcaption><a href='graphs/loss_vs_iteration.png'><img src='graphs/loss_vs_iteration.png'></a></figure>
+<figure><figcaption>PSNR to original vs iteration</figcaption><a href='graphs/psnr_vs_iteration.png'><img src='graphs/psnr_vs_iteration.png'></a></figure>
+<figure><figcaption>SSIM to original vs iteration</figcaption><a href='graphs/ssim_vs_iteration.png'><img src='graphs/ssim_vs_iteration.png'></a></figure>
+<figure><figcaption>Input ArcFace identity similarity vs iteration</figcaption><a href='graphs/input_identity_similarity_vs_iteration.png'><img src='graphs/input_identity_similarity_vs_iteration.png'></a></figure>
+<figure><figcaption>Geometry component diagnostics vs iteration</figcaption><a href='graphs/geometry_component_diagnostics_vs_iteration.png'><img src='graphs/geometry_component_diagnostics_vs_iteration.png'></a></figure>
+</div></main></body></html>

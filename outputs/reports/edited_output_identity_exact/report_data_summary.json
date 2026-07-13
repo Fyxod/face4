@@ -1,0 +1,35 @@
+{
+  "compress_images": false,
+  "graphs": [
+    {
+      "path": "graphs/z_vs_iteration.png",
+      "title": "Z vs iteration"
+    },
+    {
+      "path": "graphs/loss_vs_iteration.png",
+      "title": "Loss vs iteration"
+    },
+    {
+      "path": "graphs/psnr_vs_iteration.png",
+      "title": "PSNR to original vs iteration"
+    },
+    {
+      "path": "graphs/ssim_vs_iteration.png",
+      "title": "SSIM to original vs iteration"
+    },
+    {
+      "path": "graphs/input_identity_similarity_vs_iteration.png",
+      "title": "Input ArcFace identity similarity vs iteration"
+    },
+    {
+      "path": "graphs/geometry_component_diagnostics_vs_iteration.png",
+      "title": "Geometry component diagnostics vs iteration"
+    }
+  ],
+  "html": "report.html",
+  "markdown": "report.md",
+  "num_missing": 0,
+  "num_runs": 4,
+  "pdf": "report.pdf",
+  "run_root": "outputs/edited_output_identity_exact/20260711_174813_edited_output_identity_all_sequential"
+}
