@@ -282,12 +282,34 @@ def _mean_series_by_iter(runs: list[dict[str, Any]], key: str) -> tuple[list[flo
     return xs, ys
 
 
-def plot_mean_geometry_lines(path: Path, title: str, ylabel: str, runs: list[dict[str, Any]], keys: list[tuple[str, str]]) -> None:
+def component_enabled(run: dict[str, Any], component: str) -> bool:
+    """Return whether a geometry component was enabled for this saved run.
+
+    Prefer the immutable resolved configuration saved with the run.  Older
+    result folders may not contain it, so fall back to the per-iteration
+    ``*_enabled`` diagnostic already written to history.csv.
+    """
+    resolved = run.get("config", {}).get("geometry_config_resolved", {})
+    config_value = resolved.get(f"{component}_enabled")
+    if config_value is not None:
+        return bool(config_value)
+    history_key = f"{component}_enabled"
+    return any((to_float(row.get(history_key)) or 0.0) > 0.5 for row in run.get("history_rows", []))
+
+
+def plot_mean_geometry_lines(
+    path: Path,
+    title: str,
+    ylabel: str,
+    runs: list[dict[str, Any]],
+    keys: list[tuple[str, str, str]],
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     plt.figure(figsize=(10, 5.2), dpi=125)
     plotted = False
-    for key, label in keys:
-        xs, ys = _mean_series_by_iter(runs, key)
+    for key, label, component in keys:
+        enabled_runs = [run for run in runs if component_enabled(run, component)]
+        xs, ys = _mean_series_by_iter(enabled_runs, key)
         if xs:
             plotted = True
             plt.plot(xs, ys, linewidth=2.0, label=label)
@@ -374,10 +396,23 @@ def make_graphs(runs: list[dict[str, Any]], output_root: Path) -> list[dict[str,
         "raw diagnostic value",
         runs,
         [
-            ("tps_mean_disp", "TPS"),
-            ("delaunay_mean_disp", "Delaunay"),
-            ("rolling_mean_disp", "Rolling"),
-            ("dct_gain_mean_abs", "DCT gain"),
+            ("tps_mean_disp", "TPS", "tps"),
+            ("delaunay_mean_disp", "Delaunay", "delaunay"),
+            ("rolling_mean_disp", "Rolling shutter", "rolling"),
+            ("dct_gain_mean_abs", "DCT gain", "dct"),
+            ("fft_phase_mean_abs", "FFT phase", "fft_phase"),
+            ("polar_mean_disp", "Polar", "polar"),
+            ("bspline_mean_disp", "B-spline / Bezier", "bspline"),
+            ("lens_barrel_mean_disp", "Lens barrel", "lens_barrel"),
+            ("lens_pincushion_mean_disp", "Lens pincushion", "lens_pincushion"),
+            ("mobius_mean_disp", "Mobius", "mobius"),
+            ("laplacian_mean_disp", "Laplacian", "laplacian"),
+            ("geodesic_mean_disp", "Geodesic", "geodesic"),
+            (
+                "differential_surface_mean_disp",
+                "Differential surface",
+                "differential_surface",
+            ),
         ],
     )
     graphs.append({"title": "Geometry component diagnostics vs iteration", "path": component_path.relative_to(output_root).as_posix()})
