@@ -56,8 +56,8 @@
       "px_limit": null
     },
     "lens_barrel": {
-      "enabled": false,
-      "k_limit": 0.35
+      "enabled": true,
+      "k_limit": 0.03
     },
     "lens_pincushion": {
       "enabled": false,
@@ -81,9 +81,9 @@
       "px_limit": null
     },
     "differential_surface": {
-      "enabled": false,
+      "enabled": true,
       "size": 7,
-      "height_limit": 0.04,
+      "height_limit": 0.02,
       "px_scale": 12.0
     }
   }

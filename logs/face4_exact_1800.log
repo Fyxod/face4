@@ -1,0 +1,48 @@
+/home/interns/Desktop/face4/face4/models/arcface.py:75: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  payload = torch.load(self.checkpoint_path, map_location="cpu")
+[face4] input face_002: /home/interns/Desktop/mat/data/face_002/instruct_512.png
+[face4] input face_005: /home/interns/Desktop/mat/data/face_005/instruct_512.png
+Loading pipeline components...:   0%|          | 0/6 [00:00<?, ?it/s][0;93m2026-07-11 17:48:28.574174907 [W:onnxruntime:Default, device_discovery.cc:164 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:89 ReadFileContents Failed to open file: "/sys/class/drm/card0/device/vendor"[m
+Loading pipeline components...:  17%|█▋        | 1/6 [00:00<00:03,  1.56it/s]Loading pipeline components...:  33%|███▎      | 2/6 [00:03<00:07,  1.83s/it]
+Loading weights:   0%|          | 0/196 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 196/196 [00:00<00:00, 2092.30it/s]
+Loading pipeline components...:  50%|█████     | 3/6 [00:03<00:03,  1.15s/it]Loading pipeline components...:  67%|██████▋   | 4/6 [00:03<00:01,  1.31it/s]Loading pipeline components...: 100%|██████████| 6/6 [00:03<00:00,  1.57it/s]
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+/home/interns/Desktop/face4/face4/models/iresnet.py:98: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=self.fp16):
+[face4] running edited_output_identity__face_002__add_black_sunglasses image=/home/interns/Desktop/mat/data/face_002/instruct_512.png seed=250852
+[face4] generating exact clean edit reference: prompt='add black sunglasses' steps=20
+[face4] running mandatory grad/no-grad/stock parity preflight
+[face4] non-finite fp16 backward at state 26 with scale 65536; retrying the same state with 32768
+[face4] non-finite fp16 backward at state 479 with scale 32768; retrying the same state with 16384
+[face4] non-finite fp16 backward at state 626 with scale 16384; retrying the same state with 8192
+[face4] non-finite fp16 backward at state 626 with scale 8192; retrying the same state with 4096
+[face4] non-finite fp16 backward at state 626 with scale 4096; retrying the same state with 2048
+[face4] running edited_output_identity__face_002__add_headphones image=/home/interns/Desktop/mat/data/face_002/instruct_512.png seed=438717
+[face4] generating exact clean edit reference: prompt='add headphones' steps=20
+[face4] running mandatory grad/no-grad/stock parity preflight
+[face4] non-finite fp16 backward at state 91 with scale 65536; retrying the same state with 32768
+[face4] non-finite fp16 backward at state 91 with scale 32768; retrying the same state with 16384
+[face4] non-finite fp16 backward at state 1390 with scale 16384; retrying the same state with 8192
+[face4] running edited_output_identity__face_005__add_black_sunglasses image=/home/interns/Desktop/mat/data/face_005/instruct_512.png seed=67119
+[face4] generating exact clean edit reference: prompt='add black sunglasses' steps=20
+[face4] running mandatory grad/no-grad/stock parity preflight
+[face4] non-finite fp16 backward at state 4 with scale 65536; retrying the same state with 32768
+[face4] non-finite fp16 backward at state 25 with scale 32768; retrying the same state with 16384
+[face4] non-finite fp16 backward at state 29 with scale 16384; retrying the same state with 8192
+[face4] running edited_output_identity__face_005__add_headphones image=/home/interns/Desktop/mat/data/face_005/instruct_512.png seed=405993
+[face4] generating exact clean edit reference: prompt='add headphones' steps=20
+[face4] running mandatory grad/no-grad/stock parity preflight
+[face4] non-finite fp16 backward at state 380 with scale 65536; retrying the same state with 32768
+[face4] non-finite fp16 backward at state 798 with scale 32768; retrying the same state with 16384
+[face4] non-finite fp16 backward at state 798 with scale 16384; retrying the same state with 8192
+[face4] non-finite fp16 backward at state 798 with scale 8192; retrying the same state with 4096
+[face4-run] wrote: outputs/edited_output_identity_exact/20260711_174813_edited_output_identity_all_sequential

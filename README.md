@@ -152,11 +152,11 @@ $HOME/.local/bin/micromamba run \
   --arcface-checkpoint /home/interns/Desktop/face4/models/arcface/iresnet100.pth \
   --geometry-config configs/geometry_default.json \
   --output-root outputs/edited_output_identity_exact \
-  --iters 150 \
+  --iters 1800 \
   --edit-steps 20 \
   --lr 0.1 \
   --skip-deepface \
-  2>&1 | tee logs/face4_exact_150.log
+  2>&1 | tee logs/face4_exact_1800.log
 ```
 
 ## Output semantics
